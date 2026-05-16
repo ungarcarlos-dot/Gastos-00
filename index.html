@@ -642,7 +642,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 // ═══════════════════════════════════════════
 // DATA
 // ═══════════════════════════════════════════
-const APP_VERSION = 'v1.52';
+const APP_VERSION = 'v1.53';
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const DAYS = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
 
@@ -8057,6 +8057,18 @@ async function _doSync(){
 
 window.dbxSync=function(){ _doSync(); };
 
+window.dbxWhoAmI=async function(){
+  try {
+    var token=await _ensureFreshToken();
+    var res=await fetch('https://api.dropboxapi.com/2/users/get_current_account',{
+      method:'POST', headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'}, body:'null'
+    });
+    var data=await res.json();
+    var el=document.getElementById('dbx-account-info');
+    if(el && data && data.email) el.textContent='Cuenta: '+data.email;
+  } catch(e){}
+};
+
 window.dbxForceDownload=async function(){
   if(!confirm('¿Reemplazar todos los datos locales con los de Dropbox?\nSe perderán los cambios locales no sincronizados.')) return;
   var icon=document.getElementById('dbx-sync-icon');
@@ -8164,7 +8176,7 @@ function _renderDbxCfg(){
     root.innerHTML=
       '<div style="display:flex;align-items:center;gap:8px;padding:8px 0 12px">'
       +'<span style="width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0"></span>'
-      +'<span style="font-size:13px;color:var(--text2);flex:1">Conectado · último sync: '+lastSync+'<br><span style="font-size:10px;color:var(--text3)">App Key: '+cfg.appKey+'</span></span>'
+      +'<span style="font-size:13px;color:var(--text2);flex:1">Conectado · último sync: '+lastSync+'<br><span style="font-size:10px;color:var(--text3)">App Key: '+cfg.appKey+'</span><br><span id="dbx-account-info" style="font-size:10px;color:var(--text3)">Cuenta: cargando...</span></span>'
       +'<button onclick="dbxSync()" style="font-size:12px;padding:5px 12px;border-radius:var(--radius);border:none;background:var(--accent);color:#fff;cursor:pointer;font-family:inherit;font-weight:600">Sync</button>'
       +'</div>'
       +'<button onclick="dbxForceDownload()" style="width:100%;padding:8px;border-radius:var(--radius);border:1px solid rgba(220,140,0,0.4);background:rgba(220,140,0,0.06);color:#b87800;font-size:12px;cursor:pointer;font-family:inherit;margin-bottom:6px">⬇ Forzar descarga desde Dropbox</button>'
@@ -8209,7 +8221,7 @@ document.head.appendChild(_dbxStyle);
 var _origToggle=window.toggleCfgSection;
 window.toggleCfgSection=function(id){
   if(_origToggle) _origToggle(id);
-  if(id==='dropbox') setTimeout(_renderDbxCfg, 0);
+  if(id==='dropbox') { setTimeout(_renderDbxCfg, 0); setTimeout(function(){ if(window.dbxWhoAmI) window.dbxWhoAmI(); }, 300); }
 };
 
 })(); // end Dropbox IIFE
